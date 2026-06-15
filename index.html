@@ -328,23 +328,23 @@
                     </div>
                 </div>
 
-                <!-- Service 6: Complete Turnkey Office Workspaces -->
+                <!-- Service 6: Sound Studio Works -->
                 <div class="bg-stone-900/40 rounded-2xl border border-stone-800 p-6 flex flex-col justify-between hover:border-amber-500/30 transition-all duration-300 shadow-xl hover:-translate-y-1">
                     <div>
                         <div class="aspect-[4/3] w-full rounded-xl overflow-hidden bg-stone-950 mb-5 border border-stone-800/80">
-                            <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=600&q=80" alt="Turnkey Office Workspace Solutions" class="w-full h-full object-cover">
+                            <img src="https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?auto=format&fit=crop&w=600&q=80" alt="Sound Studio Works and Acoustics by Jagdish Interior" class="w-full h-full object-cover">
                         </div>
                         <div class="flex items-center gap-2 mb-3">
-                            <i class="fa-solid fa-briefcase text-amber-500 text-lg"></i>
-                            <h3 class="text-lg font-serif font-bold text-stone-100">Turnkey Workspace Interiors</h3>
+                            <i class="fa-solid fa-microphone-lines text-amber-500 text-lg"></i>
+                            <h3 class="text-lg font-serif font-bold text-stone-100">Sound Studio Works</h3>
                         </div>
                         <p class="text-stone-400 text-xs font-light leading-relaxed">
-                            Full-scale commercial office workspace fit-outs. We plan ceiling layings, partition setups, conference room acoustics, executive cabins, and customized modular desks with wire integration channels.
+                            Professional soundproofing and studio setup. We install premium acoustic soundproof foam, bass traps, isolation shields, and custom chroma green screen backdrops.
                         </p>
                     </div>
                     <div class="mt-6 pt-4 border-t border-stone-800 flex justify-between items-center">
-                        <span class="text-[10px] text-stone-500 tracking-wider font-semibold uppercase">Corporate Fit-Out Executions</span>
-                        <a href="#contact" data-service="Turnkey Office Workspace" class="service-link-btn text-xs text-amber-500 font-bold hover:text-amber-400 flex items-center gap-1.5">
+                        <span class="text-[10px] text-stone-500 tracking-wider font-semibold uppercase">Acoustics & Chroma Setup</span>
+                        <a href="#contact" data-service="Sound Studio Works" class="service-link-btn text-xs text-amber-500 font-bold hover:text-amber-400 flex items-center gap-1.5">
                             Inquire <i class="fa-solid fa-angle-right"></i>
                         </a>
                     </div>
@@ -715,6 +715,7 @@
                                 <label class="block text-[10px] font-bold text-stone-500 uppercase tracking-widest mb-1.5">Project Space Type</label>
                                 <select id="ai-space" class="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-stone-300 text-xs focus:outline-none focus:border-amber-500">
                                     <option value="Residential Living Room">Residential Living Room / Hall</option>
+                                    <option value="Sound Recording Studio">Sound Recording Studio / Acoustic Setup</option>
                                     <option value="Executive Corporate Office">Executive Corporate Office Workspace</option>
                                     <option value="Reception / Hotel Lobby">Reception / Hotel Lobby Area</option>
                                     <option value="Boutique Café & Restaurant">Boutique Café & Restaurant Diner</option>
@@ -846,7 +847,7 @@
                                     <option value="PVC Panels & Cladding">PVC Panels & Cladding Work</option>
                                     <option value="Premium Wooden & Vinyl Flooring">Premium Wooden & Vinyl Flooring</option>
                                     <option value="Office Glass Privacy Films">Office Glass Privacy & Sun Films</option>
-                                    <option value="Turnkey Office Workspace">Turnkey Corporate Office Workspaces</option>
+                                    <option value="Sound Studio Works">Sound Studio Works</option>
                                     <option value="Other Turnkey Custom Interior">Other Turnkey Custom Interior Work</option>
                                 </select>
                             </div>
@@ -1032,27 +1033,88 @@
 
             let latestGeneratedConceptText = ""; // Holds the output to write to form
 
-            // Gemini Proxy Serverless Function Call
+            // Gemini Proxy Serverless Function Call with Client-Side Direct Fallback
             async function callGeminiAPI(promptText, systemPrompt) {
-                // Call the secure backend serverless function proxy to keep API Key completely hidden
-                const response = await fetch('/api/generate', {
+                // 1. Try serverless backend proxy
+                try {
+                    const response = await fetch('/api/generate', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ promptText, systemPrompt })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.textResponse) {
+                            return data.textResponse;
+                        }
+                    }
+                } catch (proxyError) {
+                    console.log("Serverless proxy failed or not available, trying local fallback:", proxyError);
+                }
+
+                // 2. Local fallback: Try to fetch and parse .env file to run directly from client
+                let apiKey = "";
+                try {
+                    const envResponse = await fetch('./.env');
+                    if (envResponse.ok) {
+                        const envText = await envResponse.text();
+                        const match = envText.match(/GEMINI_API_KEY\s*=\s*([^\s#\r\n]+)/);
+                        if (match && match[1]) {
+                            apiKey = match[1].trim();
+                        }
+                    }
+                } catch (envError) {
+                    console.log("Failed to load .env file directly:", envError);
+                }
+
+                // If we couldn't load it from .env, check localStorage
+                if (!apiKey) {
+                    apiKey = localStorage.getItem("GEMINI_API_KEY") || "";
+                }
+
+                // If still not found, prompt the user for the key (only if running locally)
+                if (!apiKey && (window.location.protocol === "file:" || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")) {
+                    const enteredKey = prompt("To run the AI Assistant offline, please enter your Gemini API Key (or run this site on a local server with a .env file):");
+                    if (enteredKey) {
+                        apiKey = enteredKey.trim();
+                        localStorage.setItem("GEMINI_API_KEY", apiKey);
+                    }
+                }
+
+                if (!apiKey || apiKey.startsWith("YOUR_")) {
+                    throw new Error("Gemini API key is not configured.");
+                }
+
+                // Call Gemini API directly from browser
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+                const payload = {
+                    contents: [{ parts: [{ text: promptText }] }],
+                    systemInstruction: { parts: [{ text: systemPrompt }] }
+                };
+
+                const directResponse = await fetch(url, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ promptText, systemPrompt })
+                    body: JSON.stringify(payload)
                 });
 
-                if (!response.ok) {
-                    const errDetail = await response.json().catch(() => ({}));
-                    throw new Error(errDetail.error || `Proxy Server Error: ${response.status}`);
+                if (!directResponse.ok) {
+                    const errDetail = await directResponse.text();
+                    console.error("Gemini API direct call failed:", errDetail);
+                    throw new Error(`Gemini API direct error: ${directResponse.statusText}`);
                 }
 
-                const data = await response.json();
-                if (data.textResponse) {
-                    return data.textResponse;
+                const data = await directResponse.json();
+                const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (textResponse) {
+                    return textResponse;
                 }
-                throw new Error("Empty response returned from Gemini proxy.");
+                throw new Error("Empty response returned from Gemini API.");
             }
 
             // Click Handler to run Gemini AI Concept Generation
@@ -1066,16 +1128,16 @@
                 aiLoader.classList.remove('hidden');
                 aiResultPanel.classList.add('hidden');
 
-                const systemPrompt = `You are an elite, senior interior designer and architectural workspace planner at JAGDISH INTERIOR, located in Sector 31, Nithari, Hansraj Complex. 
+                const systemPrompt = `You are an elite, senior interior designer and acoustic sound studio planner at JAGDISH INTERIOR, located in Sector 31, Nithari, Hansraj Complex. 
 Your business has a diverse, high-ticket catalog including:
 1. Bespoke Sofas & Accent Chairs (Velvet, Linen, Full-Grain Leather, Custom fills)
 2. Luxury Curtains & Window Blinds (Blackouts, Sheers, Zebra, Smart Motorized Blinds, Roman/Roller folds, Royal Pleated)
 3. PVC Panels & Wall Cladding (Fluted charcoal louvers, acoustic padding, moisture-resistant textures)
 4. Wooden & Vinyl Flooring (Premium Wooden Planks, SPC Interlocking Water-resistant Tiles, High-Traffic Commercial Vinyl)
 5. Office Glass Privacy & Sun Films (Elegant frosted layouts, heat blocker sun tints, custom geometric brand cuts)
-6. Complete Turnkey Corporate Office Workspaces (False ceilings, structural partitions, meeting/cabin seating layout)
+6. Sound Studio Works (Premium acoustic soundproof foam, bass traps, isolation shields, and custom chroma green screen backdrops)
 
-Draft a concise, premium interior design layout recommendation for the client. Speak professionally as Jagdish Interior. Use bullet points and headers. Recommend specific products from our catalog (such as Motorized Blinds for smart offices, Belgian Sheers for airy vibes, or Heavy Blackouts for premium isolation). Keep the response under 150 words. Do not quote prices.`;
+Draft a concise, premium interior design layout recommendation for the client. Speak professionally as Jagdish Interior. Use bullet points and headers. Recommend specific products from our catalog (such as Soundproof Foam for recording studios, Motorized Blinds for smart spaces, Belgian Sheers for airy vibes, or Heavy Blackouts for premium isolation). Keep the response under 150 words. Do not quote prices.`;
 
                 const promptText = `Please generate an elite interior blueprint suggestion for the following room profile:
 - Space Type: ${space}
@@ -1085,8 +1147,8 @@ Draft a concise, premium interior design layout recommendation for the client. S
 Explicitly recommend:
 1. What custom sofa/chair setup fits this.
 2. The custom curtain, smart automated track, or blind style recommendation (e.g., Zebra, Roman, Sheers, Blackouts).
-3. The wall PVC panel cladding or flooring layout.
-4. (If corporate/glass) The frosted glass privacy film design.`;
+3. The wall PVC panel cladding, flooring layout, or acoustic soundproof foam alignment.
+4. (If studio/audio) The soundproofing foam, bass traps, and chroma green screen setup.`;
 
                 try {
                     const result = await callGeminiAPI(promptText, systemPrompt);
@@ -1121,8 +1183,10 @@ Explicitly recommend:
                     formDetails.value = `[AI DESIGN BLUEPRINT APPLIED - ${space.toUpperCase()}]\n\n${latestGeneratedConceptText}`;
                     
                     // Automatically pre-select the appropriate primary service
-                    if (space.includes("Office") || space.includes("Lobby")) {
-                        formService.value = "Turnkey Office Workspace";
+                    if (space.includes("Studio") || space.includes("Acoustic") || space.includes("Sound")) {
+                        formService.value = "Sound Studio Works";
+                    } else if (space.includes("Office") || space.includes("Lobby")) {
+                        formService.value = "Office Glass Privacy Films";
                     } else if (space.includes("Living Room") || space.includes("Bedroom")) {
                         formService.value = "Other Turnkey Custom Interior";
                     }
