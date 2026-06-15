@@ -1036,6 +1036,7 @@
             // Gemini Proxy Serverless Function Call with Client-Side Direct Fallback
             async function callGeminiAPI(promptText, systemPrompt) {
                 // 1. Try serverless backend proxy
+                let useFallback = false;
                 try {
                     const response = await fetch('/api/generate', {
                         method: 'POST',
@@ -1050,9 +1051,22 @@
                         if (data.textResponse) {
                             return data.textResponse;
                         }
+                    } else if (response.status === 404) {
+                        useFallback = true;
+                    } else {
+                        const errDetail = await response.json().catch(() => ({}));
+                        throw new Error(errDetail.error || `Server Error: ${response.status}`);
                     }
                 } catch (proxyError) {
-                    console.log("Serverless proxy failed or not available, trying local fallback:", proxyError);
+                    if (proxyError.message && (proxyError.message.includes("Server Error") || proxyError.message.includes("API Key") || proxyError.message.includes("configured"))) {
+                        throw proxyError;
+                    }
+                    console.log("Serverless proxy network error, trying local fallback:", proxyError);
+                    useFallback = true;
+                }
+
+                if (!useFallback) {
+                    throw new Error("Could not retrieve AI response from server.");
                 }
 
                 // 2. Local fallback: Try to fetch and parse .env file to run directly from client
@@ -1164,7 +1178,7 @@ Explicitly recommend:
                     console.error("Gemini Assistant Failure: ", error);
                     triggerModal(
                         "AI Assistant Offline",
-                        "The Gemini planning engine is temporarily undergoing server maintenance. Please proceed to fill out your requests in the consultation form manually!"
+                        `The Gemini planning engine encountered an error:\n\n${error.message}\n\nPlease check your configuration and try again.`
                     );
                 } finally {
                     btnGenerateAI.disabled = false;
