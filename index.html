@@ -710,32 +710,11 @@
                     </div>
 
                     <div class="lg:col-span-7 bg-stone-900/60 p-6 rounded-2xl border border-stone-800">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                            <div>
-                                <label class="block text-[10px] font-bold text-stone-500 uppercase tracking-widest mb-1.5">Project Space Type</label>
-                                <select id="ai-space" class="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-stone-300 text-xs focus:outline-none focus:border-amber-500">
-                                    <option value="Residential Living Room">Residential Living Room / Hall</option>
-                                    <option value="Sound Recording Studio">Sound Recording Studio / Acoustic Setup</option>
-                                    <option value="Executive Corporate Office">Executive Corporate Office Workspace</option>
-                                    <option value="Reception / Hotel Lobby">Reception / Hotel Lobby Area</option>
-                                    <option value="Boutique Café & Restaurant">Boutique Café & Restaurant Diner</option>
-                                    <option value="Luxury Villa Bedroom">Luxury Villa Master Bedroom</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-[10px] font-bold text-stone-500 uppercase tracking-widest mb-1.5">Design Tone / Vibe</label>
-                                <select id="ai-vibe" class="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-stone-300 text-xs focus:outline-none focus:border-amber-500">
-                                    <option value="Sleek High-Tech Professional">Sleek Charcoal & Glass Office</option>
-                                    <option value="Warm Luxury Wood & Gold">Warm Luxury Wood & Royal Gold Accent</option>
-                                    <option value="Minimalist Airy Neutral">Minimalist Airy Neutral (White & Light SPC)</option>
-                                    <option value="High-Density Commercial Heavy-Duty">High-Density Functional Bold Modern</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="mb-4">
-                            <label class="block text-[10px] font-bold text-stone-500 uppercase tracking-widest mb-1.5">Briefly Describe Your Space & Requirements</label>
-                            <textarea id="ai-description" rows="2" placeholder="e.g. 4 large windows facing direct sunlight, glass doors requiring privacy film logo, wall needs PVC cladding behind a custom L-Shape sofa..." class="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-stone-300 text-xs focus:outline-none focus:border-amber-500 placeholder:text-stone-700 resize-none"></textarea>
+                        <div class="mb-5">
+                            <label class="block text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                                <i class="fa-solid fa-message text-[9px]"></i> Ask anything or describe your space & requirements
+                            </label>
+                            <textarea id="ai-chat-input" rows="4" placeholder="Describe the space you want to plan (e.g., 'I want a luxury living room with warm wooden vibes, a custom L-shaped sofa, fluted PVC wall panels, and automatic blackout blinds for two windows' or 'I need soundproofing and acoustic foams for my home recording studio')..." class="w-full bg-stone-950 border border-stone-800 rounded-xl p-3.5 text-stone-300 text-xs focus:outline-none focus:border-amber-500 placeholder:text-stone-700 resize-y min-h-[100px] transition-all duration-300"></textarea>
                         </div>
 
                         <div class="flex items-center justify-between gap-4">
@@ -1133,9 +1112,15 @@
 
             // Click Handler to run Gemini AI Concept Generation
             btnGenerateAI.addEventListener('click', async () => {
-                const space = document.getElementById('ai-space').value;
-                const vibe = document.getElementById('ai-vibe').value;
-                const description = document.getElementById('ai-description').value || "No special description provided.";
+                const userPrompt = document.getElementById('ai-chat-input').value.trim();
+
+                if (!userPrompt) {
+                    triggerModal(
+                        "Input Required",
+                        "Please enter details or ask a question about your space requirements first so Gemini can generate a layout recommendation."
+                    );
+                    return;
+                }
 
                 // UI Loading States
                 btnGenerateAI.disabled = true;
@@ -1151,18 +1136,12 @@ Your business has a diverse, high-ticket catalog including:
 5. Office Glass Privacy & Sun Films (Elegant frosted layouts, heat blocker sun tints, custom geometric brand cuts)
 6. Sound Studio Works (Premium acoustic soundproof foam, bass traps, isolation shields, and custom chroma green screen backdrops)
 
-Draft a concise, premium interior design layout recommendation for the client. Speak professionally as Jagdish Interior. Use bullet points and headers. Recommend specific products from our catalog (such as Soundproof Foam for recording studios, Motorized Blinds for smart spaces, Belgian Sheers for airy vibes, or Heavy Blackouts for premium isolation). Keep the response under 150 words. Do not quote prices.`;
+Draft a concise, premium interior design layout recommendation for the client based on their request. Speak professionally as Jagdish Interior. Use bullet points and headers. Recommend specific products from our catalog (such as Soundproof Foam for recording studios, Motorized Blinds for smart spaces, Belgian Sheers for airy vibes, or Heavy Blackouts for premium isolation). Keep the response under 180 words. Do not quote prices.`;
 
-                const promptText = `Please generate an elite interior blueprint suggestion for the following room profile:
-- Space Type: ${space}
-- Aesthetic Vibe/Tone: ${vibe}
-- Client Layout Notes: "${description}"
+                const promptText = `Please generate an elite interior blueprint suggestion based on the following client request:
+"${userPrompt}"
 
-Explicitly recommend:
-1. What custom sofa/chair setup fits this.
-2. The custom curtain, smart automated track, or blind style recommendation (e.g., Zebra, Roman, Sheers, Blackouts).
-3. The wall PVC panel cladding, flooring layout, or acoustic soundproof foam alignment.
-4. (If studio/audio) The soundproofing foam, bass traps, and chroma green screen setup.`;
+Align the request with our catalog of services (Sofas/Chairs, Curtains/Blinds, PVC Cladding, Premium Flooring, Privacy Glass Films, and Sound Studio Setup) and suggest a luxurious, functional solution.`;
 
                 try {
                     const result = await callGeminiAPI(promptText, systemPrompt);
@@ -1190,18 +1169,27 @@ Explicitly recommend:
             btnApplyAI.addEventListener('click', () => {
                 const formDetails = document.getElementById('form-details');
                 const formService = document.getElementById('form-service');
-                const space = document.getElementById('ai-space').value;
+                const userPrompt = document.getElementById('ai-chat-input').value.trim();
 
                 if (latestGeneratedConceptText) {
                     // Pre-fill the description details with the generated concept specs
-                    formDetails.value = `[AI DESIGN BLUEPRINT APPLIED - ${space.toUpperCase()}]\n\n${latestGeneratedConceptText}`;
+                    formDetails.value = `[AI DESIGN BLUEPRINT APPLIED]\n\n${latestGeneratedConceptText}`;
                     
-                    // Automatically pre-select the appropriate primary service
-                    if (space.includes("Studio") || space.includes("Acoustic") || space.includes("Sound")) {
+                    // Automatically pre-select the appropriate primary service based on content or prompt
+                    const textToAnalyze = (userPrompt + " " + latestGeneratedConceptText).toLowerCase();
+                    if (textToAnalyze.includes("studio") || textToAnalyze.includes("acoustic") || textToAnalyze.includes("sound") || textToAnalyze.includes("soundproof") || textToAnalyze.includes("green screen")) {
                         formService.value = "Sound Studio Works";
-                    } else if (space.includes("Office") || space.includes("Lobby")) {
+                    } else if (textToAnalyze.includes("film") || textToAnalyze.includes("glass") || textToAnalyze.includes("frosted") || textToAnalyze.includes("privacy")) {
                         formService.value = "Office Glass Privacy Films";
-                    } else if (space.includes("Living Room") || space.includes("Bedroom")) {
+                    } else if (textToAnalyze.includes("sofa") || textToAnalyze.includes("couch") || textToAnalyze.includes("chair") || textToAnalyze.includes("recliner")) {
+                        formService.value = "Bespoke Sofas & Chairs";
+                    } else if (textToAnalyze.includes("curtain") || textToAnalyze.includes("blind") || textToAnalyze.includes("drape") || textToAnalyze.includes("sheer")) {
+                        formService.value = "Luxury Curtains & Blinds";
+                    } else if (textToAnalyze.includes("panel") || textToAnalyze.includes("pvc") || textToAnalyze.includes("cladding") || textToAnalyze.includes("louver")) {
+                        formService.value = "PVC Panels & Cladding";
+                    } else if (textToAnalyze.includes("floor") || textToAnalyze.includes("spc") || textToAnalyze.includes("vinyl") || textToAnalyze.includes("wood")) {
+                        formService.value = "Premium Wooden & Vinyl Flooring";
+                    } else {
                         formService.value = "Other Turnkey Custom Interior";
                     }
 
