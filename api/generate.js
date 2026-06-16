@@ -1,7 +1,17 @@
 export default async function handler(req, res) {
-    // Enable CORS for testing/deployment flexibility
+    // Enable CORS for testing/deployment flexibility - restricted to trusted origins
     res.setHeader('Access-Control-Allow-Credentials', true);
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    
+    const origin = req.headers.origin;
+    if (origin) {
+        // Allow localhost development ports or any *.vercel.app domain
+        if (/^http:\/\/localhost(:\d+)?$/.test(origin) || 
+            /^http:\/\/127\.0\.0\.1(:\d+)?$/.test(origin) || 
+            /^https:\/\/.*\.vercel\.app$/.test(origin)) {
+            res.setHeader('Access-Control-Allow-Origin', origin);
+        }
+    }
+    
     res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
     res.setHeader(
         'Access-Control-Allow-Headers',

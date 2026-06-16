@@ -1220,22 +1220,22 @@ Align the request with our catalog of services (Sofas/Chairs, Curtains/Blinds, P
                 const details = document.getElementById('form-details').value || "None";
                 const fileSelected = fileInput.files.length > 0 ? fileInput.files[0].name : "No file selected";
 
-                // Compile message text for WhatsApp API representing our custom diversity
-                const waMessage = `*NEW BESPOKE INTERIOR INQUIRY - JAGDISH INTERIOR*%0A%0A` +
-                    `*Client Details:*%0A` +
-                    `- Name: ${name}%0A` +
-                    `- Phone: ${phone}%0A` +
-                    `- Email: ${email}%0A%0A` +
-                    `*Requested Service:*%0A` +
-                    `- Category: *${service}*%0A%0A` +
-                    `*Client Requirements:*%0A` +
-                    `"${details}"%0A%0A` +
-                    `*Attached Blueprint/Sketch:* ${fileSelected}%0A%0A` +
+                // Compile message text for WhatsApp API and URL-encode the components safely
+                const rawMessage = `*NEW BESPOKE INTERIOR INQUIRY - JAGDISH INTERIOR*\n\n` +
+                    `*Client Details:*\n` +
+                    `- Name: ${name}\n` +
+                    `- Phone: ${phone}\n` +
+                    `- Email: ${email}\n\n` +
+                    `*Requested Service:*\n` +
+                    `- Category: *${service}*\n\n` +
+                    `*Client Requirements:*\n` +
+                    `"${details}"\n\n` +
+                    `*Attached Blueprint/Sketch:* ${fileSelected}\n\n` +
                     `Please review my requirements. I will attach my layout files/sketches to this WhatsApp chat now!`;
 
-                // Open WhatsApp redirect immediately
+                // Open WhatsApp redirect immediately with properly encoded URI parameters
                 const targetWhatsAppNumber = "918368652895"; // Your exact business number
-                const waUrl = `https://wa.me/${targetWhatsAppNumber}?text=${waMessage}`;
+                const waUrl = `https://wa.me/${targetWhatsAppNumber}?text=${encodeURIComponent(rawMessage)}`;
                 
                 window.open(waUrl, '_blank');
 
